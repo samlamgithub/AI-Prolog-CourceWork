@@ -9,9 +9,9 @@
 
 
 
-%-----------------------
+%---------- PART 1 -------------
 
-time_stamp(X):- get_time(X).
+time_stamp(X):- statistics(runtime, [X| _]).
 
 test_strategy(N,S1,S2) :- 
 play_help(ND,NB,NR,TOTAL,N,S1,S2,Short,Long,TimeTotal),
@@ -63,7 +63,7 @@ decide(0,1,0,b).
 decide(1,0,0,draw).
 
 
-%------------------------
+%---------- PART 1 -------------
 
 %%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%
@@ -169,12 +169,12 @@ move_piece(PieceColour, minimax, Board, NewBoard, Move) :-
  minimax(PieceColour, Board, NewBoard, Move).
 
 
-%----------------------
+%---------- PART 2 ------------
 bloodlust(+PlayerColour, +CurrentBoardState, -NewBoardState, -Move).
 self_preservation(+PlayerColour, +CurrentBoardState, -NewBoardState, -Move).
 land_grab(+PlayerColour, +CurrentBoardState, -NewBoardState, -Move).
 minimax(+PlayerColour, +CurrentBoardState, -NewBoardState, -Move).
-%----------------------
+%---------- PART 2 ------------
 
 %%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%
