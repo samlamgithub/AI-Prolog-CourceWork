@@ -156,92 +156,95 @@ move_piece('r', random, [AliveBlues, AliveReds], [AliveBlues, NewAliveReds], Mov
 %%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%% BLOODLUST STRATEGIES
 
-maxx([X], X) :- !.
-maxx([X,Y|Tail], N):-
+minimo([(A,X)], (A,X)).
+minimo([(A,X),(B,Y)|Tail], N):-
     ( X > Y ->
-        maxx([X|Tail], N)
+        minimo([(B,Y)|Tail], N)
     ;
-        maxx([Y|Tail], N)
+        minimo([(A,X)|Tail], N)
     ).
 
 bloodlust_red(Alive, OtherPlayerAlive, Move) :-
- findall([A,B,MA,MB],(member([A,B], Alive),
+ findall(
+  ([A,B,MA,MB],X),
+  (member([A,B], Alive),
                       neighbour_position(A,B,[MA,MB]),
                 \+member([MA,MB],Alive),
-                \+member([MA,MB],OtherPlayerAlive)),
-   PossMoves),
- findall(X,(member(Mov,PossMoves),alter_board(Mov, Alive, NewAlive),
-next_generation([OtherPlayerAlive,NewAlive],  [NBLUE,NRED]),
-  length(NBLUE,X)
-  ),
- Boards),
-maxx(Boards,Maximum),
-member(Move,PossMoves),
-alter_board(Move, Alive, NewAlive2),
-next_generation([OtherPlayerAlive,NewAlive2],[NB2,NR2]),
-  length(NB2,Maximum).
-
+                \+member([MA,MB],OtherPlayerAlive),
+             alter_board([A,B,MA,MB], Alive, NewAlive),
+              next_generation([OtherPlayerAlive,NewAlive], [NBLUE,NRED]),
+              length(NBLUE,X)),
+   PossMoves
+   ),
+minimo(PossMoves,(Move,Maximum)).
 
 bloodlust_blue(Alive, OtherPlayerAlive, Move) :-
- findall([A,B,MA,MB],(member([A,B], Alive),
+ findall(
+  ([A,B,MA,MB],X),
+  (
+  member([A,B], Alive),
                       neighbour_position(A,B,[MA,MB]),
-                \+member([MA,MB],Alive),
-                \+member([MA,MB],OtherPlayerAlive)),
+             \+member([MA,MB],Alive),
+              \+member([MA,MB],OtherPlayerAlive),
+             alter_board([A,B,MA,MB], Alive, NewAlive),
+             next_generation([NewAlive,OtherPlayerAlive], [NBLUE,NRED]),
+              length(NRED,X)),
    PossMoves),
- findall(X,(member(Mov,PossMoves),alter_board(Mov, Alive, NewAlive),
-next_generation([NewAlive,OtherPlayerAlive], [NBLUE,NRED]),
-  length(NRED,X)
-  ),
- Boards),
-maxx(Boards,Maximum),
-member(Move,PossMoves),
-alter_board(Move, Alive, NewAlive2),
-next_generation([NewAlive2,OtherPlayerAlive],[NB2,NR2]),
-  length(NR2,Maximum).
+minimo(PossMoves,(Move,Minimum)).
+
+
 
 move_piece('b', bloodlust, [AliveBlues, AliveReds], [NewAliveBlues, AliveReds], Move) :-
  bloodlust_blue(AliveBlues, AliveReds, Move),
  alter_board(Move, AliveBlues, NewAliveBlues).
 
-move_piece_red('r', bloodlust, [AliveBlues, AliveReds], [AliveBlues, NewAliveReds], Move) :-
+move_piece('r', bloodlust, [AliveBlues, AliveReds], [AliveBlues, NewAliveReds], Move) :-
  bloodlust_red(AliveReds, AliveBlues, Move),
  alter_board(Move, AliveReds, NewAliveReds). 
 
 %%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%Self Preservation STRATEGY
-minimo([X], X) :- !.
-minimo([X,Y|Tail], N):-
-    ( X > Y ->
-        minimo([Y|Tail], N)
+%%%%%%%%%%%%%%%%% Self Preservation STRATEGY
+
+maxx([(A,X)], (A,X)).
+maxx([(A,X),(B,Y)|Tail], N):-
+    ( X < Y ->
+        maxx([(B,Y)|Tail], N)
     ;
-        minimo([X|Tail], N)
+        maxx([(A,X)|Tail], N)
     ).
 
 
-self_preservation(Alive, OtherPlayerAlive, Move):-
-findall([A,B,MA,MB],(member([A,B], Alive),
+self_preservation_blue(Alive, OtherPlayerAlive, Move):-
+findall(([A,B,MA,MB],X),(member([A,B], Alive),
                       neighbour_position(A,B,[MA,MB]),
                 \+member([MA,MB],Alive),
-                \+member([MA,MB],OtherPlayerAlive)),
+                \+member([MA,MB],OtherPlayerAlive),
+alter_board([A,B,MA,MB], Alive, NewAlive),
+  next_generation([NewAlive,OtherPlayerAlive], [NBLUE,NRED]),
+  length(NBLUE,X)),
    PossMoves),
- findall(X,(member(Mov,PossMoves),alter_board(Mov, Alive, NewAlive),
-  length(NewAlive,X)
-  ),
- Boards),
-minimo(Boards,Minimum),
-member(Move,PossMoves),
-alter_board(Move, Alive, NewAlive2),
-  length(NewAlive2,Minimum).
+ maxx(PossMoves,(Move,Maximum)).
+
+ self_preservation_red(Alive, OtherPlayerAlive, Move):-
+findall(([A,B,MA,MB],X),(member([A,B], Alive),
+                      neighbour_position(A,B,[MA,MB]),
+                \+member([MA,MB],Alive),
+                \+member([MA,MB],OtherPlayerAlive),
+alter_board([A,B,MA,MB], Alive, NewAlive),
+  next_generation([OtherPlayerAliveNewAlive], [NBLUE,NRED]),
+  length(NRED,X)),
+   PossMoves),
+ maxx(PossMoves,(Move,Maximum)).
 
 
 
 move_piece('b', self_preservation, [AliveBlues, AliveReds], [NewAliveBlues, AliveReds], Move) :-
- self_preservation(AliveBlues, AliveReds, Move),
+ self_preservation_blue(AliveBlues, AliveReds, Move),
  alter_board(Move, AliveBlues, NewAliveBlues).
 
 move_piece('r', self_preservation, [AliveBlues, AliveReds], [AliveBlues, NewAliveReds], Move) :-
- self_preservation(AliveReds, AliveBlues, Move),
+ self_preservation_red(AliveReds, AliveBlues, Move),
  alter_board(Move, AliveReds, NewAliveReds). 
 
 
@@ -251,40 +254,27 @@ move_piece('r', self_preservation, [AliveBlues, AliveReds], [AliveBlues, NewAliv
 %%%%%%%%%%%%%%%%% Land Grab STRATEGY
 
 
-land_grab_red(Alive, OtherPlayerAlive, Move) :-
- findall([A,B,MA,MB],(member([A,B], Alive),
+land_grab_blue(Alive, OtherPlayerAlive, Move):-
+findall(([A,B,MA,MB],X),(member([A,B], Alive),
                       neighbour_position(A,B,[MA,MB]),
                 \+member([MA,MB],Alive),
-                \+member([MA,MB],OtherPlayerAlive)),
+                \+member([MA,MB],OtherPlayerAlive),
+alter_board([A,B,MA,MB], Alive, NewAlive),
+  next_generation([NewAlive,OtherPlayerAlive], [NBLUE,NRED]),
+  length(NBLUE,Y),length(NRED,Z),X is Y-Z),
    PossMoves),
- findall(X,(member(Mov,PossMoves),alter_board(Mov, Alive, NewAlive),
-next_generation([OtherPlayerAlive,NewAlive],  [NBLUE,NRED]),
-  length(NRED,Y),length(NBLUE,Z),X is Y-Z
-  ),
- Boards),
-maxx(Boards,Maximum),
-member(Move,PossMoves),
-alter_board(Move, Alive, NewAlive2),
-next_generation([OtherPlayerAlive,NewAlive2],[NB2,NR2]),
- length(NB2,LB), length(NR2,LR), LR-LB = Maximum.
+ maxx(PossMoves,(Move,Maximum)).
 
-
-land_grab_blue(Alive, OtherPlayerAlive, Move) :-
- findall([A,B,MA,MB],(member([A,B], Alive),
+ land_grab_red(Alive, OtherPlayerAlive, Move):-
+findall(([A,B,MA,MB],X),(member([A,B], Alive),
                       neighbour_position(A,B,[MA,MB]),
                 \+member([MA,MB],Alive),
-                \+member([MA,MB],OtherPlayerAlive)),
+                \+member([MA,MB],OtherPlayerAlive),
+alter_board([A,B,MA,MB], Alive, NewAlive),
+  next_generation([OtherPlayerAliveNewAlive], [NBLUE,NRED]),
+  length(NBLUE,Y),length(NRED,Z),X is Z-Y),
    PossMoves),
- findall(X,(member(Mov,PossMoves),alter_board(Mov, Alive, NewAlive),
-next_generation([NewAlive,OtherPlayerAlive], [NBLUE,NRED]),
-  length(NRED,Y),length(NBLUE,Z),X is Z-Y
-  ),
- Boards),
-maxx(Boards,Maximum),
-member(Move,PossMoves),
-alter_board(Move, Alive, NewAlive2),
-next_generation([NewAlive2,OtherPlayerAlive],[NB2,NR2]),
-  length(NB2,LB), length(NR2,LR), LB-LR = Maximum.
+ maxx(PossMoves,(Move,Maximum)).
 
 move_piece('b', land_grab, [AliveBlues, AliveReds], [NewAliveBlues, AliveReds], Move) :-
  land_grab_blue(AliveBlues, AliveReds, Move),
